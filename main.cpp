@@ -1,0 +1,165 @@
+#include <iostream> 
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include "svm.cpp"
+#include <math.h>
+// 统计一行元素个数
+using namespace std ;
+int getLong(string line) {
+    int numsize = 0;
+    int s = line.size();
+    for (int a = 0 ; a < s;a++)
+        if (line[a] == ',') numsize++;
+    return numsize + 1;
+}
+ 
+vector<vector<double> > csvRead(string filename){
+	vector<vector<double> > result;
+	ifstream infile(filename, ios::in);
+	string line;
+	getline(infile, line);
+	int sizex = getLong(line);
+	while (getline(infile, line)) {
+		stringstream ss(line);
+		string str;
+		vector<double> lineReader;
+		for (int i = 0; i < sizex; i++) {
+			getline(ss, str, ',');
+			if(i) lineReader.push_back(stod(str));
+		}
+		result.push_back(lineReader);
+	}
+	return result;
+}
+
+vector<vector<double> > csvRead2(string filename){
+	vector<vector<double> > result;
+	ifstream infile(filename, ios::in);
+	string line;
+	getline(infile, line);
+	int sizex = getLong(line);
+	while (getline(infile, line)) {
+		stringstream ss(line);
+		string str;
+		vector<double> lineReader;
+		for (int i = 0; i < sizex; i++) {
+			getline(ss, str, ',');
+			if(i) lineReader.push_back(stod(str));
+		}
+		result.push_back(lineReader);
+	}
+	return result;
+}
+svm_node* sampleLinkList(int attributeNum,vector<double> trainsample)
+{
+    svm_node* nod=new svm_node[attributeNum+1];
+    for(int j = 0 ; j < attributeNum ; j++){
+        nod[j].index=j+1;
+        nod[j].value=trainsample[j];
+    }
+    nod[attributeNum].index = -1;
+    return nod;
+}
+
+svm_problem problemGenerate(vector< vector<double> > traindata_x,vector<vector<double> > traindata_y){
+    int sampleNum = traindata_x.size() ;
+    int labelNum = traindata_y.size();
+    int attributeNum = traindata_x[0].size();
+    double y_singel_label[labelNum];
+    svm_problem softsensor_problem;
+    for(int i = 0 ; i <labelNum;i++)
+        y_singel_label[i] = traindata_y[i][0] ;
+    softsensor_problem.l = labelNum   ;
+    softsensor_problem.x = new svm_node*[sampleNum]  ;
+    softsensor_problem.y = new double[sampleNum]  ;
+    for(int i = 0 ; i < labelNum ; i++){
+        softsensor_problem.x[i] = sampleLinkList(attributeNum,traindata_x[i]);
+        for(int j = 0 ; j < labelNum ; j++)
+            softsensor_problem.y[i] = y_singel_label[i];
+    }
+    return softsensor_problem;
+}
+
+svm_parameter paramInit(int svm_type=3 ,int kernel_type=2,   int degree=0,   double gamma=0.01,
+                        double coef0=0 ,double cache_size=10,double eps=0.001, double C=10,
+                        double p = 0.1 ,int shrinking = 0,   int probability=0)
+{
+    svm_parameter param;
+    param.svm_type=svm_type;
+    param.kernel_type=kernel_type;
+    param.degree=degree;
+    param.gamma=gamma;
+    param.coef0=coef0;
+    param.cache_size=cache_size;
+    param.eps=eps;
+    param.C=C;
+    // param.nr_weight=0;
+    // param.weight_label=nullptr;
+    // param.weight=nullptr;
+    // param.nu=0;
+    param.p=p;
+    param.shrinking=shrinking;
+    param.probability=probability;
+    return param;
+}
+vector<vector<double> > data_scale(vector< vector<double> > data)
+{
+    int n = data.size();
+    int m =0 ;
+    if(n) m = data[0].size();
+    cout << n << endl ;
+    cout << m << endl ;
+    for(int i = 0 ; i < m ; i++)
+    {
+        double mean = 0;
+        double std = 0 ;
+        for(int j = 0; j < n;j++) mean += data[j][i];
+        mean = mean/n;
+        for(int j = 0; j < n;j++)
+        {
+            data[j][i] =data[j][i] - mean ;
+            std += pow(data[j][i],2) ;
+        }
+        std = std/(n-1) ;
+        std = pow(std,1/2);
+        for(int j = 0 ; j < n ; j++) data[j][i] =data[j][i]/std ;
+    }
+    return data ;
+}
+
+int main(int, char**)
+{
+    vector< vector<double> > traindata = csvRead("/Users/somac/Desktop/train.csv") ;
+    vector< vector<double> > testdata = csvRead("/Users/somac/Desktop/train.csv") ;
+    traindata = data_scale(traindata);
+    vector< vector<double> > c ,d;
+    for(int i = 0 ; i < traindata.size();i++){
+        vector<double> c1 ;
+        vector<double> d1 ; 
+        for(int j = 0 ; j < traindata[0].size(); j++){
+            if(j == traindata[0].size()-1) d1.push_back(traindata[i][j]);
+            else c1.push_back(traindata[i][j]);
+            cout <<traindata[i][j] << " ";
+        }
+        cout << endl ;
+        c.push_back(c1);
+        d.push_back(d1);
+    }
+    svm_problem problem = problemGenerate(c,d);
+    svm_parameter param = paramInit();
+    svm_model* model = new svm_model ;
+    if(svm_check_parameter(&problem, &param)== nullptr) model = svm_train(&problem, &param);
+    else cout << "参数设置错误" << endl ;
+    int testNum = c.size();
+    int attributeNum = c[0].size();
+    for(int i = 0 ; i < testNum ; i ++){
+        svm_node* testList = sampleLinkList(attributeNum,c[i]);
+        double resultLabel = svm_predict(model,testList);
+        cout << resultLabel<< "  "<< d[i][0] <<"    " <<resultLabel -d[i][0]<<endl ;
+    }
+    return 0 ;
+}
+
+
