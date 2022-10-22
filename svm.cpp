@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -95,7 +96,7 @@ Cache::Cache(int l_,long int size_):l(l_),size(size_)
 	head = (head_t *)calloc(l,sizeof(head_t));	// initialized to 0
 	size /= sizeof(Qfloat);
 	size -= l * sizeof(head_t) / sizeof(Qfloat);
-	size = max(size, 2 * (long int) l);	// cache must be large enough for two columns
+	size = ::max(size, 2 * (long int) l);	// cache must be large enough for two columns
 	lru_head.next = lru_head.prev = &lru_head;
 }
 
@@ -144,7 +145,7 @@ int Cache::get_data(const int index, Qfloat **data, int len)
 		// allocate new space
 		h->data = (Qfloat *)realloc(h->data,sizeof(Qfloat)*len);
 		size -= more;
-		swap(h->len,len);
+		::swap(h->len,len);
 	}
 
 	lru_insert(h);
@@ -158,18 +159,18 @@ void Cache::swap_index(int i, int j)
 
 	if(head[i].len) lru_delete(&head[i]);
 	if(head[j].len) lru_delete(&head[j]);
-	swap(head[i].data,head[j].data);
-	swap(head[i].len,head[j].len);
+	::swap(head[i].data,head[j].data);
+	::swap(head[i].len,head[j].len);
 	if(head[i].len) lru_insert(&head[i]);
 	if(head[j].len) lru_insert(&head[j]);
 
-	if(i>j) swap(i,j);
+	if(i>j) ::swap(i,j);
 	for(head_t *h = lru_head.next; h!=&lru_head; h=h->next)
 	{
 		if(h->len > i)
 		{
 			if(h->len > j)
-				swap(h->data[i],h->data[j]);
+				::swap(h->data[i],h->data[j]);
 			else
 			{
 				// give up
@@ -209,8 +210,8 @@ public:
 	virtual double *get_QD() const = 0;
 	virtual void swap_index(int i, int j) const	// no so const...
 	{
-		swap(x[i],x[j]);
-		if(x_square) swap(x_square[i],x_square[j]);
+		::swap(x[i],x[j]);
+		if(x_square) ::swap(x_square[i],x_square[j]);
 	}
 protected:
 
@@ -449,13 +450,13 @@ private:
 void Solver::swap_index(int i, int j)
 {
 	Q->swap_index(i,j);
-	swap(y[i],y[j]);
-	swap(G[i],G[j]);
-	swap(alpha_status[i],alpha_status[j]);
-	swap(alpha[i],alpha[j]);
-	swap(p[i],p[j]);
-	swap(active_set[i],active_set[j]);
-	swap(G_bar[i],G_bar[j]);
+	::swap(y[i],y[j]);
+	::swap(G[i],G[j]);
+	::swap(alpha_status[i],alpha_status[j]);
+	::swap(alpha[i],alpha[j]);
+	::swap(p[i],p[j]);
+	::swap(active_set[i],active_set[j]);
+	::swap(G_bar[i],G_bar[j]);
 }
 
 void Solver::reconstruct_gradient()
@@ -557,8 +558,8 @@ void Solver::Solve(int l, const QMatrix& Q, const double *p_, const schar *y_,
 	// optimization step
 
 	int iter = 0;
-	int max_iter = max(10000000, l>INT_MAX/100 ? INT_MAX : 100*l);
-	int counter = min(l,1000)+1;
+	int max_iter = ::max(10000000, l>INT_MAX/100 ? INT_MAX : 100*l);
+	int counter = ::min(l,1000)+1;
 
 	while(iter < max_iter)
 	{
@@ -566,7 +567,7 @@ void Solver::Solve(int l, const QMatrix& Q, const double *p_, const schar *y_,
 
 		if(--counter == 0)
 		{
-			counter = min(l,1000);
+			counter = ::min(l,1000);
 			if(shrinking) do_shrinking();
 			info(".");
 		}
@@ -974,16 +975,16 @@ double Solver::calculate_rho()
 		if(is_upper_bound(i))
 		{
 			if(y[i]==-1)
-				ub = min(ub,yG);
+				ub = ::min(ub,yG);
 			else
-				lb = max(lb,yG);
+				lb = ::max(lb,yG);
 		}
 		else if(is_lower_bound(i))
 		{
 			if(y[i]==+1)
-				ub = min(ub,yG);
+				ub = ::min(ub,yG);
 			else
-				lb = max(lb,yG);
+				lb = ::max(lb,yG);
 		}
 		else
 		{
@@ -1125,7 +1126,7 @@ int Solver_NU::select_working_set(int &out_i, int &out_j)
 		}
 	}
 
-	if(max(Gmaxp+Gmaxp2,Gmaxn+Gmaxn2) < eps || Gmin_idx == -1)
+	if(::max(Gmaxp+Gmaxp2,Gmaxn+Gmaxn2) < eps || Gmin_idx == -1)
 		return 1;
 
 	if (y[Gmin_idx] == +1)
@@ -1186,7 +1187,7 @@ void Solver_NU::do_shrinking()
 		}
 	}
 
-	if(unshrink == false && max(Gmax1+Gmax2,Gmax3+Gmax4) <= eps*10)
+	if(unshrink == false && ::max(Gmax1+Gmax2,Gmax3+Gmax4) <= eps*10)
 	{
 		unshrink = true;
 		reconstruct_gradient();
@@ -1221,9 +1222,9 @@ double Solver_NU::calculate_rho()
 		if(y[i]==+1)
 		{
 			if(is_upper_bound(i))
-				lb1 = max(lb1,G[i]);
+				lb1 = ::max(lb1,G[i]);
 			else if(is_lower_bound(i))
-				ub1 = min(ub1,G[i]);
+				ub1 = ::min(ub1,G[i]);
 			else
 			{
 				++nr_free1;
@@ -1233,9 +1234,9 @@ double Solver_NU::calculate_rho()
 		else
 		{
 			if(is_upper_bound(i))
-				lb2 = max(lb2,G[i]);
+				lb2 = ::max(lb2,G[i]);
 			else if(is_lower_bound(i))
-				ub2 = min(ub2,G[i]);
+				ub2 = ::min(ub2,G[i]);
 			else
 			{
 				++nr_free2;
@@ -1296,8 +1297,8 @@ public:
 	{
 		cache->swap_index(i,j);
 		Kernel::swap_index(i,j);
-		swap(y[i],y[j]);
-		swap(QD[i],QD[j]);
+		::swap(y[i],y[j]);
+		::swap(QD[i],QD[j]);
 	}
 
 	~SVC_Q()
@@ -1345,7 +1346,7 @@ public:
 	{
 		cache->swap_index(i,j);
 		Kernel::swap_index(i,j);
-		swap(QD[i],QD[j]);
+		::swap(QD[i],QD[j]);
 	}
 
 	~ONE_CLASS_Q()
@@ -1385,9 +1386,9 @@ public:
 
 	void swap_index(int i, int j) const
 	{
-		swap(sign[i],sign[j]);
-		swap(index[i],index[j]);
-		swap(QD[i],QD[j]);
+		::swap(sign[i],sign[j]);
+		::swap(index[i],index[j]);
+		::swap(QD[i],QD[j]);
 	}
 
 	Qfloat *get_Q(int i, int len) const
@@ -1493,12 +1494,12 @@ static void solve_nu_svc(
 	for(i=0;i<l;i++)
 		if(y[i] == +1)
 		{
-			alpha[i] = min(1.0,sum_pos);
+			alpha[i] = ::min(1.0,sum_pos);
 			sum_pos -= alpha[i];
 		}
 		else
 		{
-			alpha[i] = min(1.0,sum_neg);
+			alpha[i] = ::min(1.0,sum_neg);
 			sum_neg -= alpha[i];
 		}
 
@@ -1610,7 +1611,7 @@ static void solve_nu_svr(
 	double sum = C * param->nu * l / 2;
 	for(i=0;i<l;i++)
 	{
-		alpha2[i] = alpha2[i+l] = min(sum,C);
+		alpha2[i] = alpha2[i+l] = ::min(sum,C);
 		sum -= alpha2[i];
 
 		linear_term[i] = - prob->y[i];
@@ -1828,7 +1829,7 @@ static double sigmoid_predict(double decision_value, double A, double B)
 static void multiclass_probability(int k, double **r, double *p)
 {
 	int t,j;
-	int iter = 0, max_iter=max(100,k);
+	int iter = 0, max_iter=::max(100,k);
 	double **Q=Malloc(double *,k);
 	double *Qp=Malloc(double,k);
 	double pQp, eps=0.005/k;
@@ -1903,7 +1904,7 @@ static void svm_binary_svc_probability(
 	for(i=0;i<prob->l;i++)
 	{
 		int j = i+rand()%(prob->l-i);
-		swap(perm[i],perm[j]);
+		::swap(perm[i],perm[j]);
 	}
 	for(i=0;i<nr_fold;i++)
 	{
@@ -2131,8 +2132,8 @@ static void svm_group_classes(const svm_problem *prob, int *nr_class_ret, int **
 	//
 	if (nr_class == 2 && label[0] == -1 && label[1] == 1)
 	{
-		swap(label[0],label[1]);
-		swap(count[0],count[1]);
+		::swap(label[0],label[1]);
+		::swap(count[0],count[1]);
 		for(i=0;i<l;i++)
 		{
 			if(data_label[i] == 0)
@@ -2459,7 +2460,7 @@ void svm_cross_validation(const svm_problem *prob, const svm_parameter *param, i
 			for(i=0;i<count[c];i++)
 			{
 				int j = i+rand()%(count[c]-i);
-				swap(index[start[c]+j],index[start[c]+i]);
+				::swap(index[start[c]+j],index[start[c]+i]);
 			}
 		for(i=0;i<nr_fold;i++)
 		{
@@ -2496,7 +2497,7 @@ void svm_cross_validation(const svm_problem *prob, const svm_parameter *param, i
 		for(i=0;i<l;i++)
 		{
 			int j = i+rand()%(l-i);
-			swap(perm[i],perm[j]);
+			::swap(perm[i],perm[j]);
 		}
 		for(i=0;i<=nr_fold;i++)
 			fold_start[i]=i*l/nr_fold;
@@ -2698,7 +2699,7 @@ double svm_predict_probability(
 		for(i=0;i<nr_class;i++)
 			for(int j=i+1;j<nr_class;j++)
 			{
-				pairwise_prob[i][j]=min(max(sigmoid_predict(dec_values[k],model->probA[k],model->probB[k]),min_prob),1-min_prob);
+				pairwise_prob[i][j]=::min(::max(sigmoid_predict(dec_values[k],model->probA[k],model->probB[k]),min_prob),1-min_prob);
 				pairwise_prob[j][i]=1-pairwise_prob[i][j];
 				k++;
 			}
@@ -3263,7 +3264,7 @@ const char *svm_check_parameter(const svm_problem *prob, const svm_parameter *pa
 			for(int j=i+1;j<nr_class;j++)
 			{
 				int n2 = count[j];
-				if(param->nu*(n1+n2)/2 > min(n1,n2))
+				if(param->nu*(n1+n2)/2 > ::min(n1,n2))
 				{
 					free(label);
 					free(count);

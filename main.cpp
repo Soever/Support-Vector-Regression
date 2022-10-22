@@ -3,8 +3,8 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include "svm.cpp"
-#include <math.h>
+#include "svr.cpp"
+
 // 统计一行元素个数
 using namespace std ;
 
