@@ -27,7 +27,7 @@ vector<vector<double> > csvRead(string filename){
 		vector<double> lineReader;
 		for (int i = 0; i < sizex; i++) {
 			getline(ss, str, ',');
-			if(i) lineReader.push_back(stod(str));
+		    lineReader.push_back(stod(str));
 		}
 		result.push_back(lineReader);
 	}
@@ -52,12 +52,13 @@ vector<vector<double> > csvRead2(string filename){
 	}
 	return result;
 }
-svm_node* sampleLinkList(int attributeNum,vector<double> trainsample)
+svm_node* sampleLinkList(vector<double> trainSample)
 {
+    int attributeNum  = trainSample.size();
     svm_node* nod=new svm_node[attributeNum+1];
     for(int j = 0 ; j < attributeNum ; j++){
         nod[j].index=j+1;
-        nod[j].value=trainsample[j];
+        nod[j].value=trainSample[j];
     }
     nod[attributeNum].index = -1;
     return nod;
@@ -75,7 +76,7 @@ svm_problem problemGenerate(vector< vector<double> > traindata_x,vector<vector<d
     softsensor_problem.x = new svm_node*[sampleNum]  ;
     softsensor_problem.y = new double[sampleNum]  ;
     for(int i = 0 ; i < labelNum ; i++){
-        softsensor_problem.x[i] = sampleLinkList(attributeNum,traindata_x[i]);
+        softsensor_problem.x[i] = sampleLinkList(traindata_x[i]);
         for(int j = 0 ; j < labelNum ; j++)
             softsensor_problem.y[i] = y_singel_label[i];
     }
@@ -108,11 +109,14 @@ svm_parameter paramInit(int svm_type=3 ,int kernel_type=2,   int degree=0,   dou
 //如果数据集训练集和标签集
 void datasetProcess(vector< vector<double> > traindata ,vector< vector<double> > &c ,vector< vector<double> > &d)
 {
-    for(int i = 0 ; i < traindata.size();i++){
+    int sampleNum = traindata.size() ;
+    int attriNum ;
+    if(sampleNum) attriNum = traindata[0].size() ;
+    for(int i = 0 ; i < sampleNum;i++){
         vector<double> c1 ;
         vector<double> d1 ; 
-        for(int j = 0 ; j < traindata[0].size(); j++){
-            if(j == traindata[0].size()-1) d1.push_back(traindata[i][j]);
+        for(int j = 0 ; j < attriNum; j++){
+            if(j == attriNum-1) d1.push_back(traindata[i][j]);
             else c1.push_back(traindata[i][j]);
         }
         c.push_back(c1);
@@ -120,13 +124,12 @@ void datasetProcess(vector< vector<double> > traindata ,vector< vector<double> >
     }
 }
 
-data_info data_scale(vector< vector<double> > data)
+trainSet_Info get_stdData(vector< vector<double> > data)
 {
-    data_info info  ;
+    trainSet_Info info  ;
     int n = data.size();
     int m =0 ;
     if(n) m = data[0].size();
-    copy(data.begin(), data.end(), back_inserter(info.traindata));
     for(int i = 0 ; i < m ; i++)
     {
         double mean = 0;
@@ -136,36 +139,24 @@ data_info data_scale(vector< vector<double> > data)
         info.mean.push_back(mean);
         for(int j = 0; j < n;j++)
         {
-            data[j][i] =data[j][i] - mean ;
-            std += pow(data[j][i],2) ;
+            double diff =data[j][i] - mean ;
+            std += pow(diff,2) ;
         }
         std = std/(n-1) ;
-        std = pow(std,1/2);
+        std = pow(std,0.5);
         info.std.push_back(std); 
-        for(int j = 0 ; j < n ; j++) data[j][i] =data[j][i]/std ;
     }
+    data = data_scale(data,info.mean,info.std);
+    copy(data.begin(), data.end(), back_inserter(info.data));
     return info ;
 }
-vector< vector<double> >  data_scale_v(vector< vector<double> > data)
+vector< vector<double> >  data_scale(vector< vector<double> > data,vector<double>mean ,vector<double>std) 
 {
-
     int n = data.size();
     int m =0 ;
     if(n) m = data[0].size();
     for(int i = 0 ; i < m ; i++)
-    {
-        double mean = 0;
-        double std = 0 ;
-        for(int j = 0; j < n;j++) mean += data[j][i];
-        mean = mean/n;
-        for(int j = 0; j < n;j++)
-        {
-            data[j][i] =data[j][i] - mean ;
-            std += pow(data[j][i],2) ;
-        }
-        std = std/(n-1) ;
-        std = pow(std,1/2);
-        for(int j = 0 ; j < n ; j++) data[j][i] =data[j][i]/std ;
-    }
-    return data ;
+        for(int j = 0; j < n ; j++)
+            data[j][i] =(data[j][i] - mean[i])/std[i];
+    return data;
 }
