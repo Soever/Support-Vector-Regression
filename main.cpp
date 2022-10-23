@@ -18,21 +18,28 @@ int main(int, char**)
     trainSet_Info trainData = get_stdData(train_X);
     svm_problem problem = problemGenerate(trainData.data,train_Y);
     svm_parameter param = paramInit();
-    svm_model* model = new svm_model ;
-    if(svm_check_parameter(&problem, &param)== nullptr) model = svm_train(&problem, &param);
-    else cout << "参数设置错误" << endl ;
+    // svm_model* model  ;
+    // if(svm_check_parameter(&problem, &param)== nullptr) model = svm_train(&problem, &param);
+    // else cout << "参数设置错误" << endl ;
 
     vector< vector<double> > test_X,test_Y;
     datasetProcess(testSet,test_X,test_Y);
 
     int testNum = test_X.size();
     int attributeNum = test_X[0].size();
-    test_X= data_scale(test_X,trainData.mean,trainData.std) ;
-        for(int i = 0 ; i < testNum ; i ++){
-            svm_node* testList = sampleLinkList(test_X[i]);
-            double resultLabel = svm_predict(model,testList);
-            cout << resultLabel<< " "<< test_Y[i][0] <<" " <<resultLabel -train_Y[i][0]<<endl ;
-        }
+    double *target = new double[problem.l];
+    svm_parameter param1  ;
+    param1.svm_type = EPSILON_SVR ;
+    param1.kernel_type = RBF ;
+    svm_cross_validation(&problem, &param,5, target);
+    for(int i = 0 ; i < problem.l ; i ++)
+        cout << target[i] << " " << train_Y[i][0] <<endl;
+    // test_X= data_scale(test_X,trainData.mean,trainData.std) ;
+    //     for(int i = 0 ; i < testNum ; i ++){
+    //         svm_node* testList = sampleLinkList(test_X[i]);
+    //         double resultLabel = svm_predict(model,testList);
+    //         cout << resultLabel<< " "<< test_Y[i][0] <<" " <<resultLabel -train_Y[i][0]<<endl ;
+    //     }
     return 0 ;
 }
 

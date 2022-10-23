@@ -96,10 +96,10 @@ svm_parameter paramInit(int svm_type=3 ,int kernel_type=2,   int degree=0,   dou
     param.cache_size=cache_size;
     param.eps=eps;
     param.C=C;
-    // param.nr_weight=0;
-    // param.weight_label=nullptr;
-    // param.weight=nullptr;
-    // param.nu=0;
+    param.nr_weight=0;
+    param.weight_label=nullptr;
+    param.weight=nullptr;
+    param.nu=0;
     param.p=p;
     param.shrinking=shrinking;
     param.probability=probability;
